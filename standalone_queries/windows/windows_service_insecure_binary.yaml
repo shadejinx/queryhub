@@ -1,0 +1,30 @@
+author: @shadejinx
+branch: dev
+notes: 'This detection could indicate that an illigetimate service is running on a system or that the service binary is not adequately protected from manipluation'
+os: 
+  - windows
+osquery_version: '3.3.2'
+query: >
+    WITH subq AS (
+      SELECT name, display_name, user_account,
+        CASE 
+          WHEN path LIKE '"%' THEN lower(substr(ltrim(path, '"'), 0, instr(ltrim(path, '"'), '"')))
+          ELSE lower(split(path, ' ', 0)) 
+        END binary_path
+      FROM services
+    ) SELECT DISTINCT s.* FROM subq s 
+      LEFT JOIN authenticode a ON s.binary_path = a.path 
+    WHERE result = 'missing'
+      AND binary_path NOT LIKE 'c:\windows\system32\%'
+      AND binary_path NOT LIKE 'c:\windows\syswow64\%'
+references: 
+  - https://attack.mitre.org/techniques/T1031/
+tags: 
+  - t1031
+  - windows_service
+  - it_hygene
+  - threat_hunting
+title: Unsigned Windows service running in non-UAC protected directory
+type: standalone
+version: '1.0'
+
